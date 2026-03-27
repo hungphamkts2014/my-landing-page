@@ -1131,24 +1131,29 @@ TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho 
       console.log('📋 Lead data (chưa cấu hình Google Sheets):', leadData);
       return;
     }
+    
+    const payload = {
+      name: leadData.name || '',
+      phone: leadData.phone || '',
+      email: leadData.email || '',
+      source: window.location.href,
+      sessionId: AI_CHAT_SESSION_ID,
+      chatHistory: chatHistoryText,
+      timestamp: new Date().toLocaleString('vi-VN')
+    };
+
     try {
+      // Sử dụng fetch với chế độ no-cors cho Google Apps Script
       await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: leadData.name || '',
-          phone: leadData.phone || '',
-          email: leadData.email || '',
-          source: window.location.href,
-          sessionId: AI_CHAT_SESSION_ID,
-          chatHistory: chatHistoryText,
-          timestamp: new Date().toLocaleString('vi-VN')
-        })
+        cache: 'no-cache',
+        // Lưu ý: no-cors không cho phép gửi header Content-Type: application/json
+        body: JSON.stringify(payload)
       });
-      console.log('📤 Đã đồng bộ dữ liệu vào Google Sheets!');
+      console.log('📤 Đã gửi yêu cầu đồng bộ tới Google Sheets!');
     } catch (err) {
-      console.warn('⚠️ Không gửi được dữ liệu lead:', err);
+      console.warn('⚠️ Gặp lỗi khi gửi dữ liệu lead:', err);
     }
   }
 
