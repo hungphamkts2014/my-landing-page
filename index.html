@@ -817,9 +817,9 @@
   // CẤU HÌNH
   // ============================================================
   const CONFIG = {
-    API_URL: 'https://openrouter.ai/api/v1/chat/completions',
-    API_KEY: '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',
-    MODEL: 'z-ai/glm-4.5-air:free',
+    API_URL: 'https://9router.vuhai.io.vn/v1/chat/completions',
+    API_KEY: 'sk-4bd27113b7dc78d1-lh6jld-f4f9c69f',
+    MODEL: 'ces-chatbot-gpt-5.4',
     CHATBOT_DATA_URL: 'chatbot_data.txt',
     // Google Sheets (thay URL sau khi deploy Apps Script)
     GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyAuw7fCqlDcHNPi25LUsL0aSkVd2yuEhUxnnN01L5yLJIHQ3QOl17Yn_Bdpp3vYn8sKg/exec',
@@ -978,9 +978,7 @@
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${CONFIG.API_KEY}`,
-        'HTTP-Referer': window.location.href,
-        'X-Title': 'Luminescent Consultant'
+        'Authorization': `Bearer ${CONFIG.API_KEY}`
       },
       body: JSON.stringify({
         model: CONFIG.MODEL,
