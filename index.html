@@ -822,7 +822,7 @@
     MODEL: 'ces-chatbot-gpt-5.4',
     CHATBOT_DATA_URL: 'chatbot_data.txt',
     // Google Sheets (thay URL sau khi deploy Apps Script)
-    GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyAuw7fCqlDcHNPi25LUsL0aSkVd2yuEhUxnnN01L5yLJIHQ3QOl17Yn_Bdpp3vYn8sKg/exec',
+    GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyrpWFT2D5cGIpBik2BPdfnK4ECGwQopTBPnzjP3TG4BUKcz__TPGmFN02xKeYi4VfOvQ/exec',
     WELCOME_MESSAGE: `Xin chào! 👋 Tôi là **Luminescent AI**, trợ lý ảo của chuyên gia **Nguyễn Văn A**.\n\nTôi có thể giúp bạn tìm hiểu về:\n- 🚀 **Dịch vụ AI & Tự động hóa**\n- 📚 **Khóa học K89 - Agentic AI**\n- 💼 **Giải pháp TMĐT**\n\nBạn muốn hỏi gì nào? 😊`
   };
 
@@ -1012,16 +1012,15 @@ ${chatbotKnowledge}
 4. Mỗi câu trả lời: Chào thân thiện → Trả lời rõ ràng → Kết thúc bằng lời mời hỏi thêm.
 5. Nếu khách hỏi về giá/học phí → khuyên liên hệ trực tiếp để nhận ưu đãi.
 
-## QUY TẮC ĐẶC BIỆT (LEAD TRACKING):
-Trong quá trình trò chuyện, nếu bạn phát hiện người dùng cung cấp Tên, Số điện thoại hoặc Email, bạn HÃY VỪA trả lời họ bình thường, VỪA chèn thêm một đoạn mã JSON vào cuối cùng của câu trả lời theo đúng định dạng sau:
-||LEAD_DATA: {"name": "...", "phone": "...", "email": "...", "interest": "...", "intent_level": "..."}||
+## QUY TẮC ĐẶC BIỆT (LEAD TRACKING - QUAN TRỌNG):
+Trong quá trình trò chuyện, nếu khách hàng cung cấp Tên, SĐT hoặc Email, bạn HÃY VỪA trả lời bình thường, VỪA chèn đoạn mã JSON sau vào cuối cùng câu trả lời:
+||LEAD_DATA: {"name": "Tên khách", "phone": "SĐT", "email": "Email", "interest": "Nhu cầu/Sản phẩm khách hỏi", "intent_level": "hot/warm/cold"}||
 
-Trong đó:
-- "interest": Tóm tắt ngắn gọn khách đang quan tâm sản phẩm/dịch vụ gì dựa trên hội thoại.
-- "intent_level": Đánh giá mức độ sẵn sàng mua hàng: "hot" (muốn mua ngay/cần báo giá gấp), "warm" (đang tìm hiểu sâu), "cold" (chỉ hỏi dạo/không rõ mục đích).
-
-Nếu thông tin nào (name, phone, email) chưa có, hãy để null.
-TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho người dùng.`;
+Yêu cầu cực kỳ nghiêm ngặt:
+- "interest": Phải là nội dung khách đang hỏi (ví dụ: "Mua máy tính", "Học khóa AI"). KHÔNG điền tên khách vào đây.
+- "intent_level": Nếu khách để lại SĐT và yêu cầu gọi lại/báo giá gấp -> PHẢI điền là "hot". Nếu chỉ hỏi thông tin chung -> "warm".
+- Chỉ điền thông tin vào các trường khi khách đã cung cấp. Nếu chưa có thông tin nào, hãy để null.
+TUYỆT ĐỐI KHÔNG giải thích hay để lộ đoạn mã này với khách hàng.`;
   }
 
   // ============================================================
@@ -1095,15 +1094,15 @@ TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho 
   // LEAD TRACKING - BÓC TÁCH DỮ LIỆU
   // ============================================================
   function processAIResponse(aiResponse, historyArray) {
-    const dataPattern = /\|\|LEAD_DATA:\s*(\{.*?\})\s*\|\|/;
+    const dataPattern = /\|\|LEAD_DATA:\s*({.*?})\|\|/i;
+    console.log('--- AI RAW RESPONSE ---', aiResponse);
 
-    // Xây dựng lịch sử chat dạng text
     let formattedHistory = '';
     if (historyArray && historyArray.length > 0) {
       formattedHistory = historyArray.map(msg => {
         const role = msg.role === 'user' ? 'Khách' : 'AI';
-        const content = msg.content.replace(dataPattern, '').trim();
-        return `${role}: ${content}`;
+        const rawContent = (msg.content || '').replace(dataPattern, '').trim();
+        return `${role}: ${rawContent}`;
       }).join('\n\n');
     }
 
@@ -1112,16 +1111,23 @@ TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho 
       if (match && match[1]) {
         try {
           const leadData = JSON.parse(match[1]);
-          console.log('✅ Dữ liệu khách hàng:', leadData);
-
+          console.log('🎯 PHÁT HIỆN DỮ LIỆU KHÁCH:', leadData);
+          
           if (leadData.name || leadData.phone || leadData.email || leadData.interest) {
+            console.log(`🚀 Thực hiện gửi sang Google Sheets (Intent: ${leadData.intent_level || 'N/A'})`);
             sendLeadToGoogleSheets(leadData, formattedHistory);
+          } else {
+            console.warn('⚠️ Tag LEAD_DATA trống thông tin, bỏ qua gửi.');
           }
         } catch (error) {
-          console.error('❌ Lỗi parse JSON từ AI:', error);
+          console.error('❌ Lỗi parse JSON lead từ AI:', error);
         }
+      } else {
+        console.warn('⚠️ Thấy tag LEAD_DATA nhưng không match được JSON.');
       }
       aiResponse = aiResponse.replace(dataPattern, '').trim();
+    } else {
+      console.log('ℹ️ Không có thẻ LEAD_DATA trong phản hồi này.');
     }
     return aiResponse;
   }
@@ -1147,18 +1153,18 @@ TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho 
       timestamp: new Date().toLocaleString('vi-VN')
     };
 
+    console.log('📡 Đang đẩy Payload sang Google:', payload);
+    
     try {
-      // Sử dụng fetch với chế độ no-cors cho Google Apps Script
       await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
         cache: 'no-cache',
-        // Lưu ý: no-cors không cho phép gửi header Content-Type: application/json
         body: JSON.stringify(payload)
       });
-      console.log('📤 Đã gửi yêu cầu đồng bộ tới Google Sheets!');
+      console.log('✅ Đã gửi tín hiệu sang Google thành công (mode no-cors).');
     } catch (err) {
-      console.warn('⚠️ Gặp lỗi khi gửi dữ liệu lead:', err);
+      console.error('❌ Lỗi khi đẩy dữ liệu sang Google Script:', err);
     }
   }
 
