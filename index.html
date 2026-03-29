@@ -1014,8 +1014,13 @@ ${chatbotKnowledge}
 
 ## QUY TẮC ĐẶC BIỆT (LEAD TRACKING):
 Trong quá trình trò chuyện, nếu bạn phát hiện người dùng cung cấp Tên, Số điện thoại hoặc Email, bạn HÃY VỪA trả lời họ bình thường, VỪA chèn thêm một đoạn mã JSON vào cuối cùng của câu trả lời theo đúng định dạng sau:
-||LEAD_DATA: {"name": "...", "phone": "...", "email": "..."}||
-Nếu thông tin nào chưa có, hãy để null.
+||LEAD_DATA: {"name": "...", "phone": "...", "email": "...", "interest": "...", "intent_level": "..."}||
+
+Trong đó:
+- "interest": Tóm tắt ngắn gọn khách đang quan tâm sản phẩm/dịch vụ gì dựa trên hội thoại.
+- "intent_level": Đánh giá mức độ sẵn sàng mua hàng: "hot" (muốn mua ngay/cần báo giá gấp), "warm" (đang tìm hiểu sâu), "cold" (chỉ hỏi dạo/không rõ mục đích).
+
+Nếu thông tin nào (name, phone, email) chưa có, hãy để null.
 TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho người dùng.`;
   }
 
@@ -1109,7 +1114,7 @@ TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho 
           const leadData = JSON.parse(match[1]);
           console.log('✅ Dữ liệu khách hàng:', leadData);
 
-          if (leadData.name || leadData.phone || leadData.email) {
+          if (leadData.name || leadData.phone || leadData.email || leadData.interest) {
             sendLeadToGoogleSheets(leadData, formattedHistory);
           }
         } catch (error) {
@@ -1134,6 +1139,8 @@ TUYỆT ĐỐI KHÔNG giải thích hay đề cập đến đoạn mã này cho 
       name: leadData.name || '',
       phone: leadData.phone || '',
       email: leadData.email || '',
+      interest: leadData.interest || '',
+      intent_level: leadData.intent_level || '',
       source: window.location.href,
       sessionId: AI_CHAT_SESSION_ID,
       chatHistory: chatHistoryText,
